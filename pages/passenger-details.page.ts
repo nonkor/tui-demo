@@ -2,6 +2,7 @@ import { Page, Locator, expect } from '@playwright/test';
 import { AvailabilityAwarePage } from './availability-aware.page';
 
 export class PassengerDetailsPage extends AvailabilityAwarePage {
+
     public readonly heading: Locator;
     public readonly continueButton: Locator;
     public readonly firstNameInput: Locator;
@@ -49,8 +50,8 @@ export class PassengerDetailsPage extends AvailabilityAwarePage {
         this.phoneError = this.phoneInput.locator('..').getByRole('alert').first();
     }
 
-    async isBookingAvailable(): Promise<boolean> {
-        return await this.isContentAvailable(this.heading);
+    protected getResultIndicator(): Locator {
+        return this.heading;
     }
 
     async triggerValidationErrors() {

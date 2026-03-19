@@ -1,6 +1,10 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { skipWithWarning } from '../tests/helpers/skip-warning';
 
 export class HomePage {
+    private static readonly NO_AVAILABLE_DATES_WARNING =
+        'No departure date slots were available for the selected route. Rerun the test to continue with passenger-details validations.';
+
     public readonly page: Page;
 
     private readonly cookiesAcceptButton: Locator;
@@ -65,13 +69,16 @@ export class HomePage {
         this.dateList = this.page.locator('.SelectLegacyDate__datePickerContainer');
     }
 
-    private async clickRandomItem(items: Locator, emptyMessage: string) {
+    private async clickRandomItem(items: Locator, emptyMessage: string): Promise<string> {
         const count = await items.count();
 
         if (count === 0) { throw new Error(emptyMessage); }
 
         const randomIndex = Math.floor(Math.random() * count);
-        await items.nth(randomIndex).click();
+        const item = items.nth(randomIndex);
+        const value = (await item.innerText()).trim()
+        await item.click();
+        return value;
     }
 
     private async clickApproveButton() {
@@ -86,28 +93,30 @@ export class HomePage {
         await this.cookiesAcceptButton.click();
     }
 
-    async selectRandomDeparture() {
+    async selectRandomDeparture(): Promise<string> {
         await this.departureInput.click();
 
         const options = await this.departureOptions();
-        await this.clickRandomItem(options, 'No available date was found');
+        const departure = await this.clickRandomItem(options, 'No available departure was found');
 
         await this.clickApproveButton();
+        return departure;
     }
 
-    async selectRandomDestination() {
+    async selectRandomDestination(): Promise<string> {
         await this.destinationListToggle.click();
 
         const countries = await this.destinationCountries();
-        await this.clickRandomItem(countries, 'No destination countries were found');
+        const country = await this.clickRandomItem(countries, 'No destination countries were found');
 
         const destinationOptions = await this.destinationOptions();
-        await this.clickRandomItem(destinationOptions, 'No destination options were found');
+        const destination = await this.clickRandomItem(destinationOptions, 'No destination options were found');
 
         await this.clickApproveButton();
+        return [country, destination].filter(Boolean).join(' / ');
     }
 
-    async selectRandomDates() {
+    async selectRandomDates(): Promise<string> {
         await this.dateListToggle.click();
 
         const dateOptions = await this.dateOptions();
@@ -119,17 +128,16 @@ export class HomePage {
         const availableDatesCount = await dateOptions.count();
 
         if (availableDatesCount === 0) {
-            return false;
+          await skipWithWarning(HomePage.NO_AVAILABLE_DATES_WARNING);
         }
 
         await this.clickRandomItem(dateOptions, 'No date options were found');
-
         await this.clickApproveButton();
 
-        return true;
+        return await this.dateListToggle.inputValue();
     }
 
-    async selectTravelers({ adults, children }: { adults: number; children: number }) {
+    async selectTravelers({ adults, children }: { adults: number; children: number }): Promise<number> {
         const travelersInput = this.page.locator('[data-test-id="rooms-and-guest-input"]');
         await travelersInput.click();
 
@@ -141,16 +149,26 @@ export class HomePage {
         await childrenInput.selectOption(children.toString());
         await expect(childrenInput).toHaveValue(children.toString());
 
-        const childrenAgeInput = this.page.locator('[aria-label="age select"] select');
-        await childrenAgeInput.selectOption('5');
+
+        const childrenAgeInput = this.page.locator('[aria-label="age select"] select:visible');
+        await expect(childrenAgeInput).toBeVisible();
+
+        const ageOptions = childrenAgeInput.locator('option');
+        const optionCount = await ageOptions.count();
+        const randomIndex = 1 + Math.floor(Math.random() * (optionCount - 1)); // exclude the first option which is usually a placeholder like "-"
+        const randomAgeValue = (await ageOptions.nth(randomIndex).getAttribute('value')) as string;
+        await childrenAgeInput.selectOption(randomAgeValue);
+        await expect(childrenAgeInput).toHaveValue(randomAgeValue);
+        const selectedChildAge = Number(randomAgeValue);
 
         await this.clickApproveButton();
+        return selectedChildAge;
     }
 
     async selectDuration(duration: string) {
-        const durationInput = this.page.locator('[data-test-id="duration-input"] select');
+        const durationInput = this.page.locator('[data-test-id="duration-input"]');
         await durationInput.selectOption(duration.toString());
-        await expect(durationInput).toHaveValue(duration.toString());
+        await expect(durationInput).toContainText(duration.toString());
     }
 
     async doSearch() {

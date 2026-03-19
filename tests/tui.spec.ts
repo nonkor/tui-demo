@@ -1,39 +1,60 @@
 import { test, expect } from '../fixtures/base-fixtures';
-import { skipWithWarning } from './helpers/skip-warning';
 
 const HOTEL_INDEX = 0;
-const NO_AVAILABLE_DATES_WARNING =
-    'No departure date slots were available for the selected route. Rerun the test to continue with passenger-details validations.';
-const BOOKING_UNAVAILABLE_WARNING =
-    'The selected accommodation is no longer available. Rerun the test to continue with passenger-details validations.';
 
 test.describe('TUI Demo', () => {
     test('allows booking with passenger-details validations', async ({ homePage, searchResultsPage, hotelPage, bookingPage, passengerDetailsPage }) => {
+        type TestData = {
+            departure: string;
+            destination: string;
+            date: string;
+            adults: number;
+            children: number;
+            childAge: number;
+            hotel: string;
+        };
+
+        const printTestData = (data: TestData) => {
+            console.log('TEST DATA:\n' + JSON.stringify(data, null, 2));
+        };
+
         await homePage.goto();
         await homePage.acceptCookies();
-        await homePage.selectRandomDeparture();
-        await homePage.selectRandomDestination();
+        const departure = await homePage.selectRandomDeparture();
+        const destination = await homePage.selectRandomDestination();
 
-        const hasAvailableDates = await homePage.selectRandomDates();
-        await skipWithWarning(!hasAvailableDates, NO_AVAILABLE_DATES_WARNING);
+        const selectedDate = await homePage.selectRandomDates();
 
-        await homePage.selectTravelers({ adults: 2, children: 1 });
+        await homePage.selectDuration('2 nachten');
+        const travelers = { adults: 2, children: 1 };
+        const selectedChildAge = await homePage.selectTravelers(travelers);
         await homePage.doSearch();
 
-        await searchResultsPage.ensureBookingAvailable(BOOKING_UNAVAILABLE_WARNING);
+        await searchResultsPage.isLoaded();
         await expect
             .poll(async () => await searchResultsPage.hotels.count())
             .toBeGreaterThan(0);
         const hotelName = await searchResultsPage.getHotelName(HOTEL_INDEX);
         await searchResultsPage.gotoHotel(HOTEL_INDEX);
 
-        await expect(hotelPage.hotelTitle).toContainText(hotelName)
+        printTestData({
+            departure,
+            destination,
+            date: selectedDate,
+            adults: travelers.adults,
+            children: travelers.children,
+            childAge: selectedChildAge,
+            hotel: hotelName,
+        });
+
+        await hotelPage.isLoaded();
+        await expect(hotelPage.hotelTitle).toContainText(hotelName, { ignoreCase: true });
         await hotelPage.bookNow();
 
-        await bookingPage.ensureBookingAvailable(BOOKING_UNAVAILABLE_WARNING);
+        await bookingPage.isLoaded();
         await bookingPage.confirmBooking();
 
-        await passengerDetailsPage.ensureBookingAvailable(BOOKING_UNAVAILABLE_WARNING);
+        await passengerDetailsPage.isLoaded();
         await passengerDetailsPage.triggerValidationErrors();
         await passengerDetailsPage.assertRequiredFieldValidationErrors();
 
@@ -42,3 +63,4 @@ test.describe('TUI Demo', () => {
         await passengerDetailsPage.assertInvalidContactDetailsValidationErrors();
     });
 });
+

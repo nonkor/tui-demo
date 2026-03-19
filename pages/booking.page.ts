@@ -9,8 +9,8 @@ export class BookingPage extends AvailabilityAwarePage {
         this.confirmButton = this.page.getByLabel('progressbar navigation').getByText('Boek Nu', { exact: true });
     }
 
-    async isBookingAvailable(): Promise<boolean> {
-        return await this.isContentAvailable(this.confirmButton);
+    protected getResultIndicator(): Locator {
+        return this.confirmButton;
     }
 
     async confirmBooking() {

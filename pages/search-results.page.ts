@@ -11,8 +11,8 @@ export class SearchResultsPage extends AvailabilityAwarePage {
         this.hotels = this.page.locator('[data-test-id="hotel-name"]:visible');
     }
 
-    async isBookingAvailable(): Promise<boolean> {
-        return await this.isContentAvailable(this.resultsList);
+    protected getResultIndicator(): Locator {
+        return this.resultsList;
     }
 
     async gotoHotel(index: number = 0) {
@@ -20,6 +20,6 @@ export class SearchResultsPage extends AvailabilityAwarePage {
     }
 
     async getHotelName(index: number = 0): Promise<string> {
-        return await this.hotels.nth(index).innerText();
+        return (await this.hotels.nth(index).innerText()).trim();
     }
 }

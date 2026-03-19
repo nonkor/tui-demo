@@ -1,11 +1,6 @@
 import { test } from '@playwright/test';
 
-export async function skipWithWarning(
-    shouldSkip: boolean,
-    reason: string
-): Promise<void> {
-    if (!shouldSkip) return;
-
+export async function skipWithWarning(reason: string): Promise<boolean> {
     const formattedReason = `[WARN][SKIP] ${reason}`;
     console.warn(formattedReason);
 
@@ -19,5 +14,6 @@ export async function skipWithWarning(
         contentType: 'text/plain'
     });
 
-    test.skip(true, reason);
+    test.info().skip(true, reason);
+    return true;
 }
