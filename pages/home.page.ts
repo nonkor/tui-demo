@@ -20,6 +20,14 @@ export class HomePage {
 
     private readonly dateListToggle: Locator;
     private readonly dateList: Locator;
+    private readonly dateCalendarTable: Locator;
+
+    private readonly travelersInput: Locator;
+    private readonly adultsInput: Locator;
+    private readonly childrenInput: Locator;
+    private readonly childrenAgeInput: Locator;
+    private readonly durationInput: Locator;
+    private readonly searchButton: Locator;
 
     // Dynamic locators
     private readonly departureOptions = async (): Promise<Locator> => {
@@ -45,8 +53,7 @@ export class HomePage {
 
     private readonly dateOptions = async (): Promise<Locator> => {
         await expect(this.dateList).toBeVisible();
-        const table = this.dateList.locator('.SelectLegacyDate__calendar > table');
-        await expect(table).toBeVisible();
+        await expect(this.dateCalendarTable).toBeVisible();
         return this.dateList.locator('td.SelectLegacyDate__available');
     };
 
@@ -67,6 +74,14 @@ export class HomePage {
 
         this.dateListToggle = this.page.locator('[data-test-id="departure-date-input"]');
         this.dateList = this.page.locator('.SelectLegacyDate__datePickerContainer');
+        this.dateCalendarTable = this.dateList.locator('.SelectLegacyDate__calendar > table');
+
+        this.travelersInput = this.page.locator('[data-test-id="rooms-and-guest-input"]');
+        this.adultsInput = this.page.locator('[aria-label="adult select"] select');
+        this.childrenInput = this.page.locator('[aria-label="child select"] select');
+        this.childrenAgeInput = this.page.locator('[aria-label="age select"] select:visible');
+        this.durationInput = this.page.locator('[data-test-id="duration-input"]');
+        this.searchButton = this.page.locator('[data-test-id="search-button"]');
     }
 
     private async clickRandomItem(items: Locator, emptyMessage: string): Promise<string> {
@@ -128,7 +143,7 @@ export class HomePage {
         const availableDatesCount = await dateOptions.count();
 
         if (availableDatesCount === 0) {
-          await skipWithWarning(HomePage.NO_AVAILABLE_DATES_WARNING);
+                    await skipWithWarning(HomePage.NO_AVAILABLE_DATES_WARNING);
         }
 
         await this.clickRandomItem(dateOptions, 'No date options were found');
@@ -138,27 +153,23 @@ export class HomePage {
     }
 
     async selectTravelers({ adults, children }: { adults: number; children: number }): Promise<number> {
-        const travelersInput = this.page.locator('[data-test-id="rooms-and-guest-input"]');
-        await travelersInput.click();
+        await this.travelersInput.click();
 
-        const adultsInput = this.page.locator('[aria-label="adult select"] select');
-        await expect(adultsInput).toHaveValue(adults.toString());
+        await expect(this.adultsInput).toHaveValue(adults.toString());
 
-        const childrenInput = this.page.locator('[aria-label="child select"] select');
-        await expect(childrenInput).toHaveValue('0');
-        await childrenInput.selectOption(children.toString());
-        await expect(childrenInput).toHaveValue(children.toString());
+        await expect(this.childrenInput).toHaveValue('0');
+        await this.childrenInput.selectOption(children.toString());
+        await expect(this.childrenInput).toHaveValue(children.toString());
 
 
-        const childrenAgeInput = this.page.locator('[aria-label="age select"] select:visible');
-        await expect(childrenAgeInput).toBeVisible();
+        await expect(this.childrenAgeInput).toBeVisible();
 
-        const ageOptions = childrenAgeInput.locator('option');
+        const ageOptions = this.childrenAgeInput.locator('option');
         const optionCount = await ageOptions.count();
         const randomIndex = 1 + Math.floor(Math.random() * (optionCount - 1)); // exclude the first option which is usually a placeholder like "-"
         const randomAgeValue = (await ageOptions.nth(randomIndex).getAttribute('value')) as string;
-        await childrenAgeInput.selectOption(randomAgeValue);
-        await expect(childrenAgeInput).toHaveValue(randomAgeValue);
+        await this.childrenAgeInput.selectOption(randomAgeValue);
+        await expect(this.childrenAgeInput).toHaveValue(randomAgeValue);
         const selectedChildAge = Number(randomAgeValue);
 
         await this.clickApproveButton();
@@ -166,13 +177,11 @@ export class HomePage {
     }
 
     async selectDuration(duration: string) {
-        const durationInput = this.page.locator('[data-test-id="duration-input"]');
-        await durationInput.selectOption(duration.toString());
-        await expect(durationInput).toContainText(duration.toString());
+        await this.durationInput.selectOption(duration.toString());
+        await expect(this.durationInput).toContainText(duration.toString());
     }
 
     async doSearch() {
-        const searchButton = this.page.locator('[data-test-id="search-button"]');
-        await searchButton.click();
+        await this.searchButton.click();
     }
 }
