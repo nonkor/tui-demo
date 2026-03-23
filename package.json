@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
+    "test:e2e": "PW_HEADED=1 playwright test",
     "test:e2e:ci": "xvfb-run -a playwright test --headed",
     "report": "playwright show-report"
   },
